@@ -93,6 +93,16 @@ module Solylace
 
     private
 
+    def eol?(pos=nil)
+      pos ||= @cursor
+      @text[pos].eql?(10)
+    end
+
+    def eof?(pos=nil)
+      post ||=@cursor
+      @text[post].nil?
+    end
+
     def move_cursor(motion, heading)
       case motion
 
@@ -103,26 +113,28 @@ module Solylace
             when :right
               @cursor += 1 unless @cursor.eql? @text.length
             when :up
+              break if @cursor.zero?
               line_start = @text.rindex("\n", @cursor - 1)
               unless line_start.nil?
                 offset = @cursor - line_start - 1
                 @cursor = line_start
                 move_cursor :line, :left
                 for i in 0...offset
+                  break if eol? 
                   @cursor += 1
-                  break if @text[@cursor].eql?(10)
                 end
               end
             when :down
+              break if @cursor.eql?(@text.length)
               line_start = @text.rindex("\n", @cursor - 1)
               if line_start.nil? then line_start = -1 end
               offset = @cursor - line_start - 1
               move_cursor :line, :right
-              unless @text[@cursor].nil?
+              unless eof? 
                 @cursor += 1
                 for i in 0...offset
+                  break if eol? || eof?
                   @cursor += 1
-                  break if [nil, 10].member?(@text[@cursor])
                 end
               end
           end
@@ -130,9 +142,9 @@ module Solylace
         when :line
           case heading
             when :right
-              @cursor += 1 until @text[@cursor].nil? || @text[@cursor].eql?(10)
+              @cursor += 1 until eof? || eol?
             when :left
-              @cursor -= 1 while @cursor > 0 && @text[@cursor-1] != 10
+              @cursor -= 1 while @cursor > 0 && !eol?(@cursor - 1)
           end
       end
     end
