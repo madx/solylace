@@ -5,15 +5,20 @@ module Solylace
     def initialize(string="")
       @text   = string
       @cursor = 0
-      @select = [0, 0, :right]
+      @select = Selection.new
     end
 
     # Insert a string at the current cursor position or replace the selection
     # with a string.
     def insert(str)
-      @text = @text[0...@cursor] + str + @text[@cursor..@text.length]
-      @cursor += str.length
-      reset_selection!
+      if @select.selecting?
+        delete nil, nil
+        insert str
+      else
+        @text = @text[0...@cursor] + str + @text[@cursor..@text.length]
+        @cursor += str.length
+        @select.reset @cursor
+      end
     end
     alias :<< :insert
 
@@ -21,9 +26,9 @@ module Solylace
     # and a heading. If the selection area is not empty, this method only 
     # removes the selected text.
     def delete(motion, heading)
-      if selecting?
-        @text.slice!(@select[0], @select[1]-@select[0])
-        @cursor = @select[0]
+      if @select.selecting?
+        @text.slice!(@select.start, @select.length)
+        @cursor = @select.start
       else
         case motion
           when :char
@@ -36,44 +41,23 @@ module Solylace
             end
         end
       end
-      reset_selection!
+      @select.reset @cursor
     end
 
     # Moves the cursor right or left in the string, breaking the selection.
     def move(motion, heading)
-      reset_selection!
+      @select.reset @cursor
       move_cursor motion, heading
-      reset_selection!
+      @select.reset @cursor
     end
 
     # Expands the selection left or right.
     def expand_selection(motion, heading)
-      if selecting?
-        if @select[2].eql? :left
-          if heading.eql? :right
-            @select[0] += 1
-          else
-            @select[0] -= 1
-          end
-        else
-          if heading.eql? :right
-            @select[1] += 1
-          else
-            @select[1] -= 1
-          end
-        end
-      else
-        @select[2] = :right
-        case heading
-          when :left
-            @select[0] -= 1
-            @select[2] = :left
-          when :right
-            @select[1] += 1
-        end
+      case motion
+        when :char
+          @select.expand(heading)
       end
-      if @select[0] < 0            then @select[0] = 0            end
-      if @select[1] > @text.length then @select[1] = @text.length end
+      @select.restrict(@text.length)
       move_cursor motion, heading
     end
 
@@ -84,37 +68,40 @@ module Solylace
     
     # Return characters before the cursor. 
     def before
-      @text[0...@select[0]]
+      @text[0...(@select.start)]
     end
 
     # Return characters after the cursor.
     def after
-      @text[@select[1]..@text.length]
+      @text[(@select.end)..(@text.length)]
     end
 
     # Returns the characters currently selected.
     def selection
-      @text[@select[0]...@select[1]]
-    end
-
-    # Determines if something is actually selected.
-    def selecting?
-      @select[0] != @select[1]
+      @text[(@select.start)...(@select.end)]
     end
 
     private
 
     def move_cursor(motion, heading)
-      case heading
-        when :left
-          @cursor -= 1 unless @cursor.zero?
-        when :right
-          @cursor += 1 unless @cursor.eql? @text.length
-      end
-    end
+      case motion
 
-    def reset_selection!
-      @select = [@cursor, @cursor, :right]
+        when :char
+          case heading
+            when :left
+              @cursor -= 1 unless @cursor.zero?
+            when :right
+              @cursor += 1 unless @cursor.eql? @text.length
+          end
+
+        when :line
+          case heading
+            when :right
+              @cursor += 1 until @text[@cursor].nil? || @text[@cursor].eql?(10)
+            when :left
+              @cursor -= 1 while @cursor > 0 && @text[@cursor-1] != 10
+          end
+      end
     end
 
   end

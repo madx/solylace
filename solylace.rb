@@ -1,6 +1,6 @@
 libpath = File.join(File.dirname(__FILE__), 'lib')
 $:.unshift(libpath) unless $:.member? libpath
-require 'buffer'
+%w(selection buffer).each {|dep| require dep }
 
 Shoes.app :height => 500, :width => 600 do
   @buf = Solylace::Buffer.new
@@ -10,15 +10,15 @@ Shoes.app :height => 500, :width => 600 do
   flow do
     background "#444".."#111"
     subtitle "Solylace", :stroke => white, :font => "20px", :margin => [5,7,15,5]
-    @open = button("Open", :margin => 5) do
-      file = ask_open_file
-      if File.readable?(file)
-        @buf = Solylace::Buffer.new(File.read(file))
-        @text.replace @buf.text
-      else
-        alert "%s is not readable" % File.basename(file)
-      end
-    end
+    #@open = button("Open", :margin => 5) do
+    #  file = ask_open_file
+    #  if File.readable?(file)
+    #    @buf = Solylace::Buffer.new(File.read(file))
+    #    @text.replace @buf.text
+    #  else
+    #    alert "%s is not readable" % File.basename(file)
+    #  end
+    #end
   end
 
   stack do
@@ -33,8 +33,14 @@ Shoes.app :height => 500, :width => 600 do
     case k
       when String
         @buf << k
+      when :tab
+        @buf << "  "
       when :left, :right
         @buf.move :char, k
+      when :end
+        @buf.move :line, :right
+      when :home
+        @buf.move :line, :left
       when :backspace
         @buf.delete :char, :left
       when :delete
@@ -43,12 +49,14 @@ Shoes.app :height => 500, :width => 600 do
         @buf.expand_selection :char, :left
       when :shift_right
         @buf.expand_selection :char, :right
+      when :alt_q
+        quit
     end
 
     @text.cursor = @buf.cursor
 
-    contents = if @buf.selecting?
-      [@buf.before, strong(@buf.selection, :fill => "#999"), @buf.after]
+    contents = if @buf.select.selecting?
+      [@buf.before, span(@buf.selection, :fill => "#aaa"), @buf.after]
     else @buf.text end
 
     @text.replace contents
