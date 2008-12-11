@@ -29,7 +29,7 @@ module Solylace
       if selecting?
         @cursor = @select.start
         ret = @text.slice!(@select.start, @select.length)
-      else
+      else if motion != nil
         case motion
           when :char
             case heading
@@ -42,7 +42,7 @@ module Solylace
         end
       end
       @select.reset @cursor
-      ret
+      ret ||= ""
     end
 
     # Moves the cursor right or left in the string, breaking the selection.
