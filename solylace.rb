@@ -53,19 +53,23 @@ Shoes.app :height => 500, :width => 600 do
         self.clipboard = @buf.selection
       when :control_v
         @buf << self.clipboard
+      when :control_x
+        if @buf.selecting? then self.clipboard = @buf.delete(nil, nil) end
       when :alt_q
         quit
     end
 
     @text.cursor = @buf.cursor
 
-    contents = if @buf.select.selecting?
+    contents = if @buf.selecting?
       [@buf.before, span(@buf.selection, :fill => "#aaa"), @buf.after]
     else @buf.text end
 
     @text.replace contents
     @status.replace "Lines: %s | " % @buf.lines, "Pos: %s | " % @buf.cursor,
-      "Selection: ", code(@buf.select.inspect), code(" [%s] " % @buf.selection)
+      "Selection: ", code(@buf.select.inspect), 
+      code(" [%s] " % @buf.selection),
+      "| Clipboard: %s" % self.clipboard.inspect
   end
 
 end

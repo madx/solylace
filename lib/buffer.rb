@@ -11,7 +11,7 @@ module Solylace
     # Insert a string at the current cursor position or replace the selection
     # with a string.
     def insert(str)
-      if @select.selecting?
+      if selecting?
         delete nil, nil
         insert str
       else
@@ -26,22 +26,23 @@ module Solylace
     # and a heading. If the selection area is not empty, this method only 
     # removes the selected text.
     def delete(motion, heading)
-      if @select.selecting?
-        @text.slice!(@select.start, @select.length)
+      if selecting?
         @cursor = @select.start
+        ret = @text.slice!(@select.start, @select.length)
       else
         case motion
           when :char
             case heading
               when :right
-                @text.slice!(@cursor, 1)
+                ret = @text.slice!(@cursor, 1)
               when :left
-                @text.slice!(@cursor - 1, 1)
+                ret = @text.slice!(@cursor - 1, 1)
                 move_cursor :char, :left
             end
         end
       end
       @select.reset @cursor
+      ret
     end
 
     # Moves the cursor right or left in the string, breaking the selection.
@@ -79,6 +80,10 @@ module Solylace
     # Returns the characters currently selected.
     def selection
       @text[(@select.start)...(@select.end)]
+    end
+
+    def selecting?
+      @select.selecting?
     end
 
     private
