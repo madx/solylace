@@ -97,6 +97,29 @@ module Solylace
               @cursor -= 1 unless @cursor.zero?
             when :right
               @cursor += 1 unless @cursor.eql? @text.length
+            when :up
+              line_start = @text.rindex("\n", @cursor - 1)
+              unless line_start.nil?
+                offset = @cursor - line_start - 1
+                @cursor = line_start
+                move_cursor :line, :left
+                for i in 0...offset
+                  @cursor += 1
+                  break if @text[@cursor].eql?(10)
+                end
+              end
+            when :down
+              line_start = @text.rindex("\n", @cursor - 1)
+              if line_start.nil? then line_start = -1 end
+              offset = @cursor - line_start - 1
+              move_cursor :line, :right
+              unless @text[@cursor].nil?
+                @cursor += 1
+                for i in 0...offset
+                  @cursor += 1
+                  break if [nil, 10].member?(@text[@cursor])
+                end
+              end
           end
 
         when :line
@@ -108,6 +131,5 @@ module Solylace
           end
       end
     end
-
   end
 end

@@ -35,7 +35,7 @@ Shoes.app :height => 500, :width => 600 do
         @buf << k
       when :tab
         @buf << "  "
-      when :left, :right
+      when :left, :right, :up, :down
         @buf.move :char, k
       when :end
         @buf.move :line, :right
