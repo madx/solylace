@@ -33,6 +33,14 @@ module Solylace
       @end - @start
     end
 
+    def inspect
+      if selecting?
+        "%s%s%s" % [@start, @heading.eql?(:left) ? '<-' : '->', @end]
+      else
+        "nil"
+      end
+    end
+
     private
 
     def expand_selection(heading)

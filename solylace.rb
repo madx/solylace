@@ -23,7 +23,7 @@ Shoes.app :height => 500, :width => 600 do
 
   stack do
     background "#222"
-    @status = para "Lines: 0", :margin => 5, :stroke => gray(0.8)
+    @status = para "", :margin => 5, :stroke => gray(0.8), :font => "12px"
   end
 
   @text = para @buf.text, :font => "DejaVu Sans Mono 12px"
@@ -49,6 +49,10 @@ Shoes.app :height => 500, :width => 600 do
         @buf.expand_selection :char, :left
       when :shift_right
         @buf.expand_selection :char, :right
+      when :control_c
+        self.clipboard = @buf.selection
+      when :control_v
+        @buf << self.clipboard
       when :alt_q
         quit
     end
@@ -60,8 +64,8 @@ Shoes.app :height => 500, :width => 600 do
     else @buf.text end
 
     @text.replace contents
-    @status.replace "Lines: %s | Cursor: %s | Select: %s" % 
-      [@buf.lines, @buf.cursor, @buf.select.inspect]
+    @status.replace "Lines: %s | " % @buf.lines, "Pos: %s | " % @buf.cursor,
+      "Selection: ", code(@buf.select.inspect), code(" [%s] " % @buf.selection)
   end
 
 end
