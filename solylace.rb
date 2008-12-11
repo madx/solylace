@@ -83,7 +83,7 @@ Shoes.app :height => 500, :width => 600 do
     @text.replace contents
     @status.replace "Lines: %s | " % @buf.lines, "Pos: %s | " % @buf.cursor,
       "Selection: ", code(@buf.select.inspect), 
-      code(" [%s] " % @buf.selection),
+      code(" %s " % @buf.selection.inspect),
       "| Clipboard: %s" % self.clipboard.inspect
   end
 
