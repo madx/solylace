@@ -33,28 +33,40 @@ Shoes.app :height => 500, :width => 600 do
     case k
       when String
         @buf << k
+
       when :tab
         @buf << "  "
+
       when :left, :right, :up, :down
         @buf.move :char, k
+
       when :end
         @buf.move :line, :right
+
       when :home
         @buf.move :line, :left
+
       when :backspace
         @buf.delete :char, :left
+
       when :delete
         @buf.delete :char, :right
+
       when :shift_left
         @buf.expand_selection :char, :left
+
       when :shift_right
         @buf.expand_selection :char, :right
+
       when :control_c
         self.clipboard = @buf.selection
+
       when :control_v
         @buf << self.clipboard
+
       when :control_x
         if @buf.selecting? then self.clipboard = @buf.delete(nil, nil) end
+
       when :alt_q
         quit
     end
