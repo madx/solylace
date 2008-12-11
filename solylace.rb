@@ -23,7 +23,7 @@ Shoes.app :height => 500, :width => 600 do
 
   stack do
     background "#222"
-    @status = para "", :margin => 5, :stroke => gray(0.8), :font => "12px"
+    @status = para "Ready.", :margin => 5, :stroke => gray(0.8), :font => "12px"
   end
 
   @text = para @buf.text, :font => "DejaVu Sans Mono 12px"
@@ -83,8 +83,7 @@ Shoes.app :height => 500, :width => 600 do
     @text.replace contents
     @status.replace "Lines: %s | " % @buf.lines, "Pos: %s | " % @buf.cursor,
       "Selection: ", code(@buf.select.inspect), 
-      code(" %s " % @buf.selection.inspect),
-      "| Clipboard: %s" % self.clipboard.inspect
+      code(" %s " % @buf.selection.inspect)
   end
 
 end
