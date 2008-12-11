@@ -67,6 +67,9 @@ Shoes.app :height => 500, :width => 600 do
       when :control_x
         if @buf.selecting? then self.clipboard = @buf.delete(nil, nil) end
 
+      when :control_a
+        @buf.select_all
+
       when :alt_q
         quit
     end

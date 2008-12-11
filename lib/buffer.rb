@@ -62,6 +62,11 @@ module Solylace
       move_cursor motion, heading
     end
 
+    # Select the whole text
+    def select_all
+      @select.set(0, @text.length)
+    end
+
     # Return the number of lines of the text.
     def lines
       @text.count("\n") + 1

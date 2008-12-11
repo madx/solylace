@@ -25,6 +25,10 @@ module Solylace
       if @end > size then @end   = size end
     end
 
+    def set(start, _end)
+      @start, @end = start, _end
+    end
+
     def selecting?
       @start != @end
     end
