@@ -29,7 +29,7 @@ module Solylace
       if selecting?
         @cursor = @select.start
         ret = @text.slice!(@select.start, @select.length)
-      else if motion != nil
+      elsif motion != nil
         case motion
           when :char
             case heading
