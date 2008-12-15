@@ -2,7 +2,7 @@ libpath = File.join(File.dirname(__FILE__), 'lib')
 $:.unshift(libpath) unless $:.member? libpath
 %w(selection buffer).each {|dep| require dep }
 
-Shoes.app :height => 500, :width => 600 do
+Shoes.app :height => 500, :width => 700 do
   @buf = Solylace::Buffer.new
 
   background gray(0.9)
@@ -11,9 +11,16 @@ Shoes.app :height => 500, :width => 600 do
     background "#444".."#111"
     subtitle "Solylace", :stroke => white, :font => "20px", :margin => [5,7,15,5]
   end
-
   
-  stack do
+  stack :width => 100, :height => 660 do
+    background "#222"
+    @open = para link("Open", :click => proc {
+      @buf = Solylace::Buffer.new(File.read(ask_open_file)) 
+      @text.replace @buf.text
+    }), :stroke => "#eee"
+  end
+
+  stack :width => -100 do
     @text = para @buf.text, :font => "DejaVu Sans Mono 12px"
   end
   @text.cursor = 0
@@ -46,7 +53,7 @@ Shoes.app :height => 500, :width => 600 do
       when :delete    then @buf.delete :right, :char
 
       when String then @buf << k
-
+      when :tab   then @buf << "  "
 
       when :alt_q then quit
     end
