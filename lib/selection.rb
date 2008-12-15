@@ -1,68 +1,45 @@
 module Solylace
 
   class Selection
-    attr_reader :start, :end, :heading
+    attr_reader :start, :end
 
-    def initialize
-      reset 0
+    def initialize(buffer)
+      @buffer = buffer
+      reset!
     end
 
-    def reset(cursor)
-      @start = @end = cursor
-      @heading = :right
+    def reset!
+      @start = @end = @buffer.cursor
     end
 
-    def expand(heading)
-      if selecting?
-        expand_selection heading
-      else
-        start_selection heading
-      end
-    end
-
-    def restrict(size)
-      if @start < 0  then @start = 0    end
-      if @end > size then @end   = size end
-    end
-
-    def set(start, _end)
-      @start, @end = start, _end
+    def update(heading, motion)
+      @start = @buffer.cursor unless selecting?
+      @buffer.move heading, motion, true
+      @end = @buffer.cursor
+      restrict!
     end
 
     def selecting?
       @start != @end
     end
 
-    def length
-      @end - @start
-    end
-
     def inspect
       if selecting?
-        "%s%s%s" % [@start, @heading.eql?(:left) ? '<-' : '->', @end]
+        "%s-%s" % [@start, @end]
       else
         "nil"
       end
     end
 
-    private
-
-    def expand_selection(heading)
-      if @heading.eql? :left
-        @start += heading.eql?(:right) ? 1 : -1
-      else
-        @end   += heading.eql?(:right) ? 1 : -1
-      end
+    def normalize
+      if @start <= @end then [@start, @end] else [@end, @start] end
     end
 
-    def start_selection(heading)
-      @heading = :right
-      if heading.eql? :left
-        @start  -= 1
-        @heading = :left
-      else
-        @end += 1
-      end
+    private
+
+    def restrict!
+      if @start < 0          then @start = 0            end
+      if @end > @buffer.size then @end   = @buffer.size end
     end
 
   end

@@ -1,152 +1,245 @@
 module Solylace
+
   class Buffer
-    attr_reader :text, :cursor, :select
+    
+    attr_reader   :cursor, :state
+    attr_accessor :sep, :text
 
     def initialize(string="")
       @text   = string
       @cursor = 0
-      @select = Selection.new
+      @edit   = ""
+      @select = Selection.new(self)
+      @sep    = " .,:;{}[]()/?!#\n".split(//)
+      @state  = :idle
+      @sdata  = nil
     end
 
-    # Insert a string at the current cursor position or replace the selection
-    # with a string.
-    def insert(str)
-      if selecting?
-        delete nil, nil
-        insert str
+    # Action 
+
+    def move(heading, motion=:char, nested=false)
+      case heading
+
+        when :left, :right
+          enter :hmove unless nested
+          horizontal_move heading, motion
+
+        when :up, :down
+          enter :vmove, column unless nested
+          if in_state?(:select) && @sdata.nil? then @sdata = column end
+          vertical_move heading, motion
+
+        else raise ArgumentError, "no such heading: #{heading}"
+      end
+    end
+
+    def select(heading, motion=:char)
+      enter :select
+      @select.update(heading, motion)
+    end
+
+    def delete(heading, motion=:char)
+      enter :idle if in_state? :edit
+      if @select.selecting?
+        cur = @select.normalize
+        @cursor = cur[0]
+        @text.slice!(cur[0]...cur[1])
       else
-        @text = @text[0...@cursor] + str + @text[@cursor..@text.length]
-        @cursor += str.length
-        @select.reset @cursor
+        select heading, motion
+        delete nil, nil
+      end
+      enter :idle
+    end
+
+    def input(string)
+      enter :edit
+      @edit << string
+    end
+    alias :<< :input
+
+    def inspect
+      "(Buffer " + 
+      %w(@state @cursor @sdata @select @edit).collect! { |x| 
+        "#{x}=#{instance_variable_get(x).inspect}" 
+      }.join(' ') + ")"
+    end
+
+    def set(option, value=true)
+    end
+
+    # Queries
+
+    def to_a
+      case @state
+        when :select
+          lim = @select.normalize
+          Array[
+            @text[0...lim[0]], 
+            @text[lim[0]...lim[1]],
+            @text[lim[1]..@text.length]
+          ]
+        when :edit
+          Array[
+            @text[0...@cursor],
+            @edit,
+            @text[@cursor..@text.length]
+          ]
+          
+        else
+          [@text]
       end
     end
-    alias :<< :insert
 
-    # Delete characters from the current position by specifying a motion 
-    # and a heading. If the selection area is not empty, this method only 
-    # removes the selected text.
-    def delete(motion, heading)
-      if selecting?
-        @cursor = @select.start
-        ret = @text.slice!(@select.start, @select.length)
-      elsif motion != nil
-        case motion
-          when :char
-            case heading
-              when :right
-                ret = @text.slice!(@cursor, 1)
-              when :left
-                ret = @text.slice!(@cursor - 1, 1)
-                move_cursor :char, :left
-            end
-        end
+    def cursor
+      if in_state? :edit
+        @cursor + @edit.length
+      else
+        @cursor
       end
-      @select.reset @cursor
-      ret ||= ""
     end
 
-    # Moves the cursor right or left in the string, breaking the selection.
-    def move(motion, heading)
-      @select.reset @cursor
-      move_cursor motion, heading
-      @select.reset @cursor
+    def in_state?(state)
+      @state.eql? state
     end
 
-    # Expands the selection left or right.
-    def expand_selection(motion, heading)
-      case motion
-        when :char
-          @select.expand(heading)
-      end
-      @select.restrict(@text.length)
-      move_cursor motion, heading
-    end
-
-    # Select the whole text
-    def select_all
-      @select.set(0, @text.length)
-    end
-
-    # Return the number of lines of the text.
     def lines
       @text.count("\n") + 1
     end
-    
-    # Return characters before the cursor. 
-    def before
-      @text[0...(@select.start)]
+
+    def line
+      @text[0...@cursor].count("\n") + 1
     end
 
-    # Return characters after the cursor.
-    def after
-      @text[(@select.end)..(@text.length)]
+    def column
+      offset = @cursor - 1 < 0 ? 0 : @cursor - 1
+      @cursor - (@text.rindex("\n", offset) || - 1 ) 
     end
 
-    # Returns the characters currently selected.
-    def selection
-      @text[(@select.start)...(@select.end)]
+    def size
+      @text.length
     end
 
-    def selecting?
-      @select.selecting?
+    private 
+
+    def enter(state, data=nil)
+      if @state != state
+        @sdata = data
+        @state = state
+      end
+      @select.reset! unless in_state? :select
+      merge! unless in_state? :edit
+      @edit = "" unless in_state? :edit
     end
 
-    private
+    def horizontal_move(heading, motion)
+      if heading.eql? :left
+        return if on? :start 
+        case motion
 
-    def eol?(pos=nil)
-      pos ||= @cursor
-      @text[pos].eql?(10)
-    end
+          when :char
+            @cursor -= 1 
 
-    def eof?(pos=nil)
-      post ||=@cursor
-      @text[post].nil?
-    end
+          when :word
+            if on? :after_sep
+              sep = char(@cursor - 1)
+              @cursor -= 1 while !on?(:start) && char(@cursor - 1).eql?(sep)
+            else
+              @cursor -= 1 while !on?(:start) && !on?(:after_sep)
+            end
 
-    def move_cursor(motion, heading)
-      case motion
+          when :line
+            @cursor -= 1 until on?(:start) || on?(:line_start)
+        end
 
-        when :char
-          case heading
-            when :left
-              @cursor -= 1 unless @cursor.zero?
-            when :right
-              @cursor += 1 unless @cursor.eql? @text.length
-            when :up
-              break if @cursor.zero?
-              line_start = @text.rindex("\n", @cursor - 1)
-              unless line_start.nil?
-                offset = @cursor - line_start - 1
-                @cursor = line_start
-                move_cursor :line, :left
-                for i in 0...offset
-                  break if eol? 
-                  @cursor += 1
-                end
-              end
-            when :down
-              break if @cursor.eql?(@text.length)
-              line_start = @text.rindex("\n", @cursor - 1)
-              if line_start.nil? then line_start = -1 end
-              offset = @cursor - line_start - 1
-              move_cursor :line, :right
-              unless eof? 
+      else
+        return if on? :end
+        case motion
+          when :char
+            @cursor += 1
+
+          when :word
+            if on? :separator
+              sep = char
+              @cursor += 1 while !on?(:end) && char.eql?(sep)
+            else
+              @cursor += 1 while !on?(:end) && !on?(:separator)
+            end
+
+          when :line
+            @cursor += 1 until on?(:end) || on?(:line_end)
+        end
+
+      end
+    end # horizontal_move
+
+    def vertical_move(heading, motion)
+      if heading.eql? :up
+        return if on?(:start) || on?(:first_line)
+        case motion
+          when :char, :word
+            @cursor = @text.rindex("\n", @cursor - 1)
+            horizontal_move :left, :line
+            (@sdata - 1).times do
+              break if on? :line_end
+              @cursor += 1
+            end
+
+          when :line
+            @sdata = 1
+            vertical_move :up, :char
+
+        end
+
+      else
+        return if on? :last_line
+        case motion
+          when :char, :word
+            @cursor = @text.index("\n", @cursor) + 1
+            if @sdata.eql? :line_end
+              horizontal_move :right, :line
+            else
+              (@sdata - 1).times do
+                break if on? :line_end
                 @cursor += 1
-                for i in 0...offset
-                  break if eol? || eof?
-                  @cursor += 1
-                end
               end
-          end
+            end
 
-        when :line
-          case heading
-            when :right
-              @cursor += 1 until eof? || eol?
-            when :left
-              @cursor -= 1 while @cursor > 0 && !eol?(@cursor - 1)
-          end
+          when :line
+            @sdata = :line_end
+            vertical_move :down, :char
+
+        end
+
+      end
+    end # vertical_move
+
+    def on?(query)
+      {
+        :start      => proc { @cursor.zero?                        },
+        :end        => proc { @cursor.eql? @text.length            },
+        :first_line => proc { @text.rindex("\n", @cursor - 1).nil? },
+        :last_line  => proc { @text.index("\n", @cursor).nil?      },
+        :line_start => proc { char(@cursor - 1).eql? "\n"          },
+        :line_end   => proc { char.eql? "\n"                       },
+        :separator  => proc { @sep.member? char                    },
+        :after_sep  => proc { @sep.member? char(@cursor - 1)       }
+      }[query].call
+    end
+
+    def char(position=nil)
+      position ||= @cursor
+      if position < 0 || position >= @text.length
+        nil
+      else
+        @text[position].chr
       end
     end
+
+    def merge!
+      @text   = @text[0...@cursor] << @edit << @text[@cursor..@text.length]
+      @cursor = @cursor + @edit.length
+    end
+
   end
+
 end
