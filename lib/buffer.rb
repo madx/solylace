@@ -52,8 +52,13 @@ module Solylace
     end
 
     def input(string)
-      enter :edit
-      @edit << string
+      if @select.selecting?
+        delete nil, nil
+        input string
+      else
+        enter :edit
+        @edit << string
+      end
     end
     alias :<< :input
 
