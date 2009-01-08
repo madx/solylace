@@ -1,12 +1,28 @@
 libpath = File.join(File.dirname(__FILE__), 'lib')
 $:.unshift(libpath) unless $:.member? libpath
-%w(selection buffer).each {|dep| require dep }
+%w(selection buffer command).each {|dep| require dep }
 
 Shoes.app :height => 520, :width => 600, :resizable => false do
+  def attr_accessor(*syms)
+    syms.each do |attribute|
+      meths = %Q{
+        def #{attribute}()
+          @#{attribute}
+        end
+        def #{attribute}=(o)
+          @#{attribute} = o
+        end
+      }
+      instance_eval meths
+    end
+  end
+  attr_accessor :buf, :buffers, :status, :text
+
   LINE_HEIGHT = 460/24 # This is true for DejaVu Sans Mono 12px,
                        # maybe only on my system though
+  @command = Solylace::Command.new(self)
   @buf = Solylace::Buffer.new
-  @buffers = [@buf]
+  @buffers = {nil => @buf}
 
   background gray(0.9)
 
@@ -59,6 +75,7 @@ Shoes.app :height => 520, :width => 600, :resizable => false do
       when :tab   then @buf << "  "
 
       when :alt_q then quit
+      when :alt_o then @command.open
     end
 
     @text.cursor = @buf.cursor
