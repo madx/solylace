@@ -2,7 +2,7 @@ libpath = File.join(File.dirname(__FILE__), 'lib')
 $:.unshift(libpath) unless $:.member? libpath
 %w(selection buffer).each {|dep| require dep }
 
-Shoes.app :height => 500, :width => 700 do
+Shoes.app :height => 520, :width => 600, :resizable => false do
   LINE_HEIGHT = 460/24 # This is true for DejaVu Sans Mono 12px,
                        # maybe only on my system though
   @buf = Solylace::Buffer.new
@@ -14,20 +14,23 @@ Shoes.app :height => 500, :width => 700 do
     subtitle "Solylace", :stroke => white, :font => "20px", :margin => [5,7,15,5]
   end
   
-  stack :width => 100, :height => 460 do
-    background "#222"
-    @open = para link("Open", :click => proc {
-      @buf = Solylace::Buffer.new(File.read(ask_open_file)) 
-      @text.replace @buf.text
-    }), :stroke => "#eee"
+  def open
+    @buf = Solylace::Buffer.new(File.read(ask_open_file))
+    @text.replace @buf.text
   end
 
-  @edit_zone = stack :width => -100, :height => 460, :scroll => true do
+  @edit_zone = stack :width => 1.0, :height => 460, :scroll => true do
     @text = para @buf.text, :font => "DejaVu Sans Mono 12px"
   end
   @edit_zone.scroll_top = 0
-
   @text.cursor = 0
+
+  @statusbar = flow :width => 1.0, :height => 20 do
+    background "#222"
+    @status = para "", :font => "DejaVu Sans 10px", 
+                       :stroke => "#bfbfbf", :margin => 4
+  end
+  @status.replace "Welcome to Solylace, press F1 for help."
 
   keypress do |k|
     case k
@@ -60,6 +63,7 @@ Shoes.app :height => 500, :width => 700 do
       when :tab   then @buf << "  "
 
       when :alt_q then quit
+      when :alt_o then open
     end
 
     @text.cursor = @buf.cursor
@@ -82,16 +86,16 @@ Shoes.app :height => 500, :width => 700 do
   def update_viewport!
     y = @buf.line * LINE_HEIGHT
     if y > @edit_zone.scroll_top + @edit_zone.height
-      scroll :up
-    elsif y <= @edit_zone.scroll_top
       scroll :down
+    elsif y <= @edit_zone.scroll_top || y == LINE_HEIGHT
+      scroll :up
     end
   end
 
   def scroll(heading)
     case heading
-      when :up   then @edit_zone.scroll_top += LINE_HEIGHT
-      when :down then @edit_zone.scroll_top -= LINE_HEIGHT
+      when :up   then @edit_zone.scroll_top -= LINE_HEIGHT
+      when :down then @edit_zone.scroll_top += LINE_HEIGHT
       else error("unknown heading #{heading} for scroll")
     end
   end
