@@ -124,11 +124,11 @@ module Solylace
     end
 
     def column
-      offset = @cursor - 1 < 0 ? 0 : @cursor - 1
+      offset = cursor - 1 < 0 ? 0 : cursor - 1
       if in_state? :edit
-        cursor - (@text.rindex("\n", offset) || - 1 ) 
+        cursor - ((@text[0...@cursor] + @edit).rindex("\n", offset) || -1 )
       else
-        @cursor - (@text.rindex("\n", offset) || - 1 ) 
+        cursor - (@text.rindex("\n", offset) || -1 ) 
       end
     end
 
