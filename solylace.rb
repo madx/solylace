@@ -6,17 +6,13 @@ Shoes.app :height => 520, :width => 600, :resizable => false do
   LINE_HEIGHT = 460/24 # This is true for DejaVu Sans Mono 12px,
                        # maybe only on my system though
   @buf = Solylace::Buffer.new
+  @buffers = [@buf]
 
   background gray(0.9)
 
   flow :height => 40 do
     background "#444".."#111"
     subtitle "Solylace", :stroke => white, :font => "20px", :margin => [5,7,15,5]
-  end
-  
-  def open
-    @buf = Solylace::Buffer.new(File.read(ask_open_file))
-    @text.replace @buf.text
   end
 
   @edit_zone = stack :width => 1.0, :height => 460, :scroll => true do
@@ -63,7 +59,6 @@ Shoes.app :height => 520, :width => 600, :resizable => false do
       when :tab   then @buf << "  "
 
       when :alt_q then quit
-      when :alt_o then open
     end
 
     @text.cursor = @buf.cursor
