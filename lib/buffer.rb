@@ -108,16 +108,28 @@ module Solylace
     end
 
     def lines
-      @text.count("\n") + 1
+      if in_state? :edit
+        to_a.inject(0) {|sum,s| sum += s.count("\n") } + 1
+      else
+        @text.count("\n") + 1
+      end
     end
 
     def line
-      @text[0...@cursor].count("\n") + 1
+      if in_state? :edit
+        (@text[0...@cursor] + @edit).count("\n") + 1
+      else
+        @text[0...@cursor].count("\n") + 1
+      end
     end
 
     def column
       offset = @cursor - 1 < 0 ? 0 : @cursor - 1
-      @cursor - (@text.rindex("\n", offset) || - 1 ) 
+      if in_state? :edit
+        cursor - (@text.rindex("\n", offset) || - 1 ) 
+      else
+        @cursor - (@text.rindex("\n", offset) || - 1 ) 
+      end
     end
 
     def size

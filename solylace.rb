@@ -91,7 +91,8 @@ Shoes.app :height => 520, :width => 600, :resizable => false do
         @text.replace @buf.to_a[0]
     end
 
-    update_viewport! if @buf.in_state?(:vmove)
+    update_viewport!
+    update_status!
 
   end # keypress
 
@@ -102,6 +103,10 @@ Shoes.app :height => 520, :width => 600, :resizable => false do
     elsif y <= @edit_zone.scroll_top || y == LINE_HEIGHT
       scroll :up
     end
+  end
+
+  def update_status!
+    @status.replace "#{@buf.line},#{@buf.column}"
   end
 
   def scroll(heading)
