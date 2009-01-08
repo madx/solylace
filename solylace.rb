@@ -3,6 +3,8 @@ $:.unshift(libpath) unless $:.member? libpath
 %w(selection buffer).each {|dep| require dep }
 
 Shoes.app :height => 500, :width => 700 do
+  LINE_HEIGHT = 460/24 # This is true for DejaVu Sans Mono 12px,
+                       # maybe only on my system though
   @buf = Solylace::Buffer.new
 
   background gray(0.9)
@@ -12,7 +14,7 @@ Shoes.app :height => 500, :width => 700 do
     subtitle "Solylace", :stroke => white, :font => "20px", :margin => [5,7,15,5]
   end
   
-  stack :width => 100, :height => 660 do
+  stack :width => 100, :height => 460 do
     background "#222"
     @open = para link("Open", :click => proc {
       @buf = Solylace::Buffer.new(File.read(ask_open_file)) 
@@ -20,9 +22,11 @@ Shoes.app :height => 500, :width => 700 do
     }), :stroke => "#eee"
   end
 
-  stack :width => -100 do
+  @edit_zone = stack :width => -100, :height => 460, :scroll => true do
     @text = para @buf.text, :font => "DejaVu Sans Mono 12px"
   end
+  @edit_zone.scroll_top = 0
+
   @text.cursor = 0
 
   keypress do |k|
@@ -71,6 +75,25 @@ Shoes.app :height => 500, :width => 700 do
         @text.replace @buf.to_a[0]
     end
 
+    update_viewport! if @buf.in_state?(:vmove)
+
+  end # keypress
+
+  def update_viewport!
+    y = @buf.line * LINE_HEIGHT
+    if y > @edit_zone.scroll_top + @edit_zone.height
+      scroll :up
+    elsif y <= @edit_zone.scroll_top
+      scroll :down
+    end
+  end
+
+  def scroll(heading)
+    case heading
+      when :up   then @edit_zone.scroll_top += LINE_HEIGHT
+      when :down then @edit_zone.scroll_top -= LINE_HEIGHT
+      else error("unknown heading #{heading} for scroll")
+    end
   end
 
 end
