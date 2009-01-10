@@ -72,6 +72,7 @@ Shoes.app :height => 520, :width => 600, :resizable => false do
       when :delete    then @buf.delete :right, :char
 
       when String then @buf << k
+      when :enter then @buf << "\n"
       when :tab   then @buf << "  "
 
       when :alt_q then quit
