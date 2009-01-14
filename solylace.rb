@@ -1,6 +1,6 @@
 libpath = File.join(File.dirname(__FILE__), 'lib')
 $:.unshift(libpath) unless $:.member? libpath
-%w(selection buffer command).each {|dep| require dep }
+%w(selection buffer command binder).each {|dep| require dep }
 
 Shoes.app :height => 520, :width => 600, :resizable => false do
   def attr_accessor(*syms)
@@ -22,6 +22,7 @@ Shoes.app :height => 520, :width => 600, :resizable => false do
                        # maybe only on my system though
   @command = Solylace::Command.new(self)
   @buf = Solylace::Buffer.new
+  @binder = Solylace::Binder.new
   @buffers = {nil => @buf}
 
   background gray(0.9)
@@ -44,41 +45,30 @@ Shoes.app :height => 520, :width => 600, :resizable => false do
   end
   @status.replace "Welcome to Solylace, press F1 for help."
 
-  keypress do |k|
-    case k
-      when :left, :right, :up, :down
-        @buf.move k, :char
+  # Keybinds
+  [:left, :right, :up, :down].each do |k|
+    @binder.bind(k)            { @buf.move k, :char }
+    @binder.bind("shift_#{k}") { @buf.select k, :char  }
+  end
+  [:left, :right].each do |k|
+    @binder.bind("control_#{k}")       { @buf.move   k, :word }
+    @binder.bind("control_shift_#{k}") { @buf.select k, :word }
+  end
+  @binder.bind(:control_up)   { @buf.move   :up,    :line }
+  @binder.bind(:control_down) { @buf.move   :down,  :line }
+  @binder.bind(:end)          { @buf.move   :right, :line }
+  @binder.bind(:home)         { @buf.move   :left,  :line }
+  @binder.bind(:shift_end)    { @buf.select :right, :line }
+  @binder.bind(:shift_home)   { @buf.select :left,  :line }
+  @binder.bind(:backspace)    { @buf.delete :left,  :char }
+  @binder.bind(:delete)       { @buf.delete :right, :char }
+  @binder.bind(:enter)        { @buf << "\n"  }
+  @binder.bind(:tab)          { @buf << "  "  }
+  @binder.bind(String)        { |k| @buf << k }
+  @binder.bind(:alt_q)        { quit }
 
-      when :end  then @buf.move :right, :line
-      when :home then @buf.move :left,  :line
-
-      when :control_left  then @buf.move :left,  :word
-      when :control_right then @buf.move :right, :word
-      when :control_up    then @buf.move :up,    :line
-      when :control_down  then @buf.move :down,  :line
-
-      when :shift_right   then @buf.select :right, :char 
-      when :shift_left    then @buf.select :left,  :char 
-      when :shift_up      then @buf.select :up,    :char 
-      when :shift_down    then @buf.select :down,  :char 
-
-      when :control_shift_left  then @buf.select :left,  :word
-      when :control_shift_right then @buf.select :right, :word
-
-      when :shift_end  then @buf.select :right, :line
-      when :shift_home then @buf.select :left,  :line
-
-      when :backspace then @buf.delete :left,  :char
-      when :delete    then @buf.delete :right, :char
-
-      when String then @buf << k
-      when :enter then @buf << "\n"
-      when :tab   then @buf << "  "
-
-      when :alt_q then quit
-      when :alt_o then @command.open
-    end
-
+  keypress do |k| 
+    @binder.handle(k, self)
     @text.cursor = @buf.cursor
 
     case @buf.state
@@ -94,8 +84,7 @@ Shoes.app :height => 520, :width => 600, :resizable => false do
 
     update_viewport!
     update_status!
-
-  end # keypress
+  end
 
   def update_viewport!
     y = @buf.line * LINE_HEIGHT
