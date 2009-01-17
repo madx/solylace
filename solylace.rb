@@ -1,6 +1,4 @@
-libpath = File.join(File.dirname(__FILE__), 'lib')
-$:.unshift(libpath) unless $:.member? libpath
-%w(selection buffer command binder).each {|dep| require dep }
+require File.join(File.dirname(__FILE__), 'lib', "solylace")
 
 Shoes.app :height => 520, :width => 600, :resizable => false do
   def attr_accessor(*syms)
