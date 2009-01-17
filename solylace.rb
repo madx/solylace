@@ -66,6 +66,7 @@ Shoes.app :height => 520, :width => 600, :resizable => false do
   @binder.bind(:tab)          { @buf << "  "  }
   @binder.bind(String)        { |k| @buf << k }
   @binder.bind(:alt_q)        { quit }
+  @binder.bind(:alt_o)        { @command.open }
 
   keypress do |k| 
     @binder.handle(k, self)
