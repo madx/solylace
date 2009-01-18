@@ -1,0 +1,3 @@
+[submodule "lib/vendor/metash"]
+	path = lib/vendor/metash
+	url = git://github.com/madx/metash.git
