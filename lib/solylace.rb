@@ -10,6 +10,6 @@ end
 slpath = File.join(File.dirname(__FILE__), 'solylace')
 $:.unshift slpath unless $:.member?(slpath)
 
-%w(binder buffer command  selection).each do |mod|
+%w(binder buffer command selection configuration configuration_dsl).each do |mod|
   require mod
 end
